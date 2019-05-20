@@ -70,7 +70,7 @@ bool Sht3xRead(float &t, float &h, uint8_t sht3x_address)
     data[i] = Wire.read();             // cTemp msb, cTemp lsb, cTemp crc, humidity msb, humidity lsb, humidity crc
   };
   t = ConvertTemp((float)((((data[0] << 8) | data[1]) * 175) / 65535.0) - 45);
-  h = (float)((((data[3] << 8) | data[4]) * 100) / 65535.0);
+  h = ConvertHumidity((float)((((data[3] << 8) | data[4]) * 100) / 65535.0));  // Set global humidity
   return (!isnan(t) && !isnan(h));
 }
 
@@ -86,8 +86,7 @@ void Sht3xDetect(void)
     if (Sht3xRead(t, h, sht3x_addresses[i])) {
       sht3x_sensors[sht3x_count].address = sht3x_addresses[i];
       GetTextIndexed(sht3x_sensors[sht3x_count].types, sizeof(sht3x_sensors[sht3x_count].types), i, kShtTypes);
-      snprintf_P(log_data, sizeof(log_data), S_LOG_I2C_FOUND_AT, sht3x_sensors[sht3x_count].types, sht3x_sensors[sht3x_count].address);
-      AddLog(LOG_LEVEL_DEBUG);
+      AddLog_P2(LOG_LEVEL_DEBUG, S_LOG_I2C_FOUND_AT, sht3x_sensors[sht3x_count].types, sht3x_sensors[sht3x_count].address);
       sht3x_count++;
     }
   }
@@ -101,17 +100,14 @@ void Sht3xShow(bool json)
     char types[11];
     for (uint8_t i = 0; i < sht3x_count; i++) {
       if (Sht3xRead(t, h, sht3x_sensors[i].address)) {
-
-        if (0 == i) { SetGlobalValues(t, h); }
-
         char temperature[33];
         dtostrfd(t, Settings.flag2.temperature_resolution, temperature);
         char humidity[33];
         dtostrfd(h, Settings.flag2.humidity_resolution, humidity);
-        snprintf_P(types, sizeof(types), PSTR("%s-0x%02X"), sht3x_sensors[i].types, sht3x_sensors[i].address);  // "SHT3X-0xXX"
+        snprintf_P(types, sizeof(types), PSTR("%s%c0x%02X"), sht3x_sensors[i].types, IndexSeparator(), sht3x_sensors[i].address);  // "SHT3X-0xXX"
 
         if (json) {
-          snprintf_P(mqtt_data, sizeof(mqtt_data), JSON_SNS_TEMPHUM, mqtt_data, types, temperature, humidity);
+          ResponseAppend_P(JSON_SNS_TEMPHUM, types, temperature, humidity);
 #ifdef USE_DOMOTICZ
           if ((0 == tele_period) && (0 == i)) {  // We want the same first sensor to report to Domoticz in case a read is missed
             DomoticzTempHumSensor(temperature, humidity);
@@ -127,8 +123,8 @@ void Sht3xShow(bool json)
 
 #ifdef USE_WEBSERVER
         } else {
-          snprintf_P(mqtt_data, sizeof(mqtt_data), HTTP_SNS_TEMP, mqtt_data, types, temperature, TempUnit());
-          snprintf_P(mqtt_data, sizeof(mqtt_data), HTTP_SNS_HUM, mqtt_data, types, humidity);
+          WSContentSend_PD(HTTP_SNS_TEMP, types, temperature, TempUnit());
+          WSContentSend_PD(HTTP_SNS_HUM, types, humidity);
 #endif  // USE_WEBSERVER
         }
       }
@@ -153,7 +149,7 @@ bool Xsns14(uint8_t function)
         Sht3xShow(1);
         break;
 #ifdef USE_WEBSERVER
-      case FUNC_WEB_APPEND:
+      case FUNC_WEB_SENSOR:
         Sht3xShow(0);
         break;
 #endif  // USE_WEBSERVER

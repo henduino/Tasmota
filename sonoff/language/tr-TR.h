@@ -93,6 +93,7 @@
 #define D_FALLBACK_TOPIC "Geri İletim Topiği"
 #define D_FALSE "False"
 #define D_FILE "Dosya"
+#define D_FLOW_RATE "Flow rate"
 #define D_FREE_MEMORY "Boş Hafıza"
 #define D_FREQUENCY "Frekans"
 #define D_GAS "Gas"
@@ -148,6 +149,7 @@
 #define D_STOP "Durdur"
 #define D_SUBNET_MASK "Altağ Geçidi Maskesi"
 #define D_SUBSCRIBE_TO "Abone olunan"
+#define D_UNSUBSCRIBE_FROM "Unsubscribe from"
 #define D_SUCCESSFUL "Başarıyla Tamamlandı"
 #define D_SUNRISE "Gün doğumu"
 #define D_SUNSET "Gün batımı"
@@ -155,6 +157,7 @@
 #define D_TO "den"
 #define D_TOGGLE "Geçiş Tuşu"
 #define D_TOPIC "Başlık"
+#define D_TOTAL_USAGE "Total Usage"
 #define D_TRANSMIT "İletim"
 #define D_TRUE "True"
 #define D_TVOC "TVOC"
@@ -219,7 +222,7 @@
 
 // xdrv_02_webserver.ino
 #define D_NOSCRIPT "To use Tasmota, please enable JavaScript"
-#define D_MINIMAL_FIRMWARE_PLEASE_UPGRADE "Donanım yazılımı çok düşük, lütfen yükseltin"
+#define D_MINIMAL_FIRMWARE_PLEASE_UPGRADE "Donanım yazılımı çok düşük<br/>lütfen yükseltin"
 #define D_WEBSERVER_ACTIVE_ON "Web sunucusu aktif"
 #define D_WITH_IP_ADDRESS "IP adres ile"
 #define D_WEBSERVER_STOPPED "Web sunucusu durdu"
@@ -254,6 +257,7 @@
 #define D_MODULE_PARAMETERS "Modül parametreleri"
 #define D_MODULE_TYPE "Modul türü"
 #define D_PULLUP_ENABLE "No Button/Switch pull-up"
+#define D_ADC "ADC"
 #define D_GPIO "GPIO"
 #define D_SERIAL_IN "Serial In"
 #define D_SERIAL_OUT "Serial Out"
@@ -288,6 +292,8 @@
 #define D_TELEMETRY_PERIOD "Telemetri peryodu"
 
 #define D_OTHER_PARAMETERS "Diğer parametreler"
+#define D_TEMPLATE "Template"
+#define D_ACTIVATE "Activate"
 #define D_WEB_ADMIN_PASSWORD "Web Yönetici Şifresi"
 #define D_MQTT_ENABLE "MQTT aktif"
 #define D_FRIENDLY_NAME "Kullanıcı Dostu İsim"
@@ -295,6 +301,12 @@
 #define D_HUE_BRIDGE "Hue Bridge"
 #define D_SINGLE_DEVICE "tekli cihaz"
 #define D_MULTI_DEVICE "çoklu cihaz"
+
+#define D_CONFIGURE_TEMPLATE "Configure Template"
+#define D_TEMPLATE_PARAMETERS "Template parameters"
+#define D_TEMPLATE_NAME "Name"
+#define D_BASE_TYPE "Based on"
+#define D_TEMPLATE_FLAGS "Options"
 
 #define D_SAVE_CONFIGURATION "Ayarları Kaydet"
 #define D_CONFIGURATION_SAVED "Ayarlar kaydedildi"
@@ -481,8 +493,12 @@
 #define D_TX20_SOUTH "S"
 #define D_TX20_WEST "W"
 
+//xsns_43_hre.ino
+#define D_LOG_HRE "HRE: "
+
 // sonoff_template.h - keep them as short as possible to be able to fit them in GUI drop down box
 #define D_SENSOR_NONE          "None"
+#define D_SENSOR_USER          "User"
 #define D_SENSOR_DHT11         "DHT11"
 #define D_SENSOR_AM2301        "AM2301"
 #define D_SENSOR_SI7021        "SI7021"
@@ -553,11 +569,27 @@
 #define D_SENSOR_MCP39F5_RST   "MCP39F5 Rst"
 #define D_SENSOR_CSE7766_TX    "CSE7766 Tx"
 #define D_SENSOR_CSE7766_RX    "CSE7766 Rx"
+#define D_SENSOR_PN532_TX      "PN532 Tx"
+#define D_SENSOR_PN532_RX      "PN532 Rx"
+#define D_SENSOR_SM16716_CLK   "SM16716 CLK"
+#define D_SENSOR_SM16716_DAT   "SM16716 DAT"
+#define D_SENSOR_SM16716_POWER "SM16716 PWR"
+#define D_SENSOR_MY92X1_DI     "MY92x1 DI"
+#define D_SENSOR_MY92X1_DCKI   "MY92x1 DCKI"
+#define D_SENSOR_ARIRFRCV      "ALux IrRcv"
+#define D_SENSOR_TXD           "Serial Tx"
+#define D_SENSOR_RXD           "Serial Rx"
+#define D_SENSOR_ROTARY        "Rotary"     // Suffix "1A"
+#define D_SENSOR_HRE_CLOCK     "HRE Clock"
+#define D_SENSOR_HRE_DATA      "HRE Data"
+#define D_SENSOR_ADE7953_IRQ   "ADE7953 IRQ"
 
 // Units
 #define D_UNIT_AMPERE "A"
 #define D_UNIT_CENTIMETER "cm"
 #define D_UNIT_HOUR "Hr"
+#define D_UNIT_GALLONS "gal"
+#define D_UNIT_GALLONS_PER_MIN "g/m"
 #define D_UNIT_INCREMENTS "inc"
 #define D_UNIT_KILOGRAM "kg"
 #define D_UNIT_KILOMETER_PER_HOUR "km/h"  // or "km/h"

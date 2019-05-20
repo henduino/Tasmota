@@ -99,15 +99,20 @@ void LcdDisplayOnOff(uint8_t on)
 
 void LcdCenter(uint8_t row, char* txt)
 {
-  int offset;
-  int len;
   char line[Settings.display_cols[0] +2];
 
+  int len = strlen(txt);
+  int offset = 0;
+  if (len >= Settings.display_cols[0]) {
+    len = Settings.display_cols[0];
+  } else {
+    offset = (Settings.display_cols[0] - len) / 2;
+  }
   memset(line, 0x20, Settings.display_cols[0]);
   line[Settings.display_cols[0]] = 0;
-  len = strlen(txt);
-  offset = (len < Settings.display_cols[0]) ? offset = (Settings.display_cols[0] - len) / 2 : 0;
-  strlcpy(line +offset, txt, len);
+  for (uint8_t i = 0; i < len; i++) {
+    line[offset +i] = txt[i];
+  }
   lcd->setCursor(0, row);
   lcd->print(line);
 }
@@ -122,7 +127,7 @@ bool LcdPrintLog(void)
     if (!disp_screen_buffer_cols) { DisplayAllocScreenBuffer(); }
 
     char* txt = DisplayLogBuffer('\337');
-    if (txt != NULL) {
+    if (txt != nullptr) {
       uint8_t last_row = Settings.display_rows -1;
 
       for (uint8_t i = 0; i < last_row; i++) {
@@ -133,8 +138,7 @@ bool LcdPrintLog(void)
       strlcpy(disp_screen_buffer[last_row], txt, disp_screen_buffer_cols);
       DisplayFillScreen(last_row);
 
-      snprintf_P(log_data, sizeof(log_data), PSTR(D_LOG_DEBUG "[%s]"), disp_screen_buffer[last_row]);
-      AddLog(LOG_LEVEL_DEBUG);
+      AddLog_P2(LOG_LEVEL_DEBUG, PSTR(D_LOG_DEBUG "[%s]"), disp_screen_buffer[last_row]);
 
       lcd->setCursor(0, last_row);
       lcd->print(disp_screen_buffer[last_row]);
