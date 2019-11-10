@@ -1,12 +1,14 @@
-# Contributing to Sonoff-Tasmota
+<img src="/tools/logo/TASMOTA_FullLogo_Vector.svg" alt="Logo" align="right" height="76"/>
+
+# Contributing
 
 **Any contribution helps our team and makes Tasmota better for the entire community!**
 
-Everybody is welcome and invited to contribute to Sonoff-Tasmota Project by:
+Everybody is welcome and invited to contribute to Tasmota Project by:
 
 * Testing newly released features and reporting issues.
 * Providing Pull Requests (Features, Proof of Concepts, Language files or Fixes)
-* Contributing missing documentation for features and devices on our [Wiki](https://github.com/arendst/Sonoff-Tasmota/wiki/Contributing)
+* Contributing missing documentation for features and devices on our [Wiki](https://github.com/arendst/Tasmota/wiki/Contributing)
 
 This document describes rules that are in effect for this repository, meant for handling issues by contributors in the issue tracker and PRs.
 
@@ -26,7 +28,7 @@ This document describes rules that are in effect for this repository, meant for 
 1.	Any contributor to the project can participate in the triaging process, if he/she chooses to do so.
 2.	An issue that needs to be closed, either due to not complying with this policy, or for other reasons, should be closed by a contributor.
 3.	Issues that are accepted should be marked with appropriate labels.
-4.	Issues that could impact functionality for many users should be considered severe. 
+4.	Issues that could impact functionality for many users should be considered severe.
 5.	Issues caused by the SDK or chip should not be marked severe, as there usually isn’t much to be done. Common sense should be applied when deciding. Such issues should be documented in the Wiki, for reference by users.
 6.	Issues with feature requests should be discussed for viability/desirability.
 7.	Feature requests or changes that are meant to address a very specific/limited use case, especially if at the expense of increased code complexity, may be denied, or may be required to be redesigned, generalized, or simplified.
@@ -42,10 +44,10 @@ A Pull Request (PR) is the process where code modifications are managed in GitHu
 The process is straight-forward.
 
  - Read [How to get faster PR reviews](https://github.com/kubernetes/community/blob/master/contributors/guide/pull-requests.md#best-practices-for-faster-reviews) by Kubernetes (but skip step 0)
- - Fork the Sonoff-Tasmota Repository [git repository](https://github.com/arendst/Sonoff-Tasmota).
+ - Fork the Tasmota Repository [git repository](https://github.com/arendst/Tasmota).
  - Write/Change the code in your Fork for a new feature, bug fix, new sensor, optimization, etc.
  - Ensure tests work.
- - Create a Pull Request against the [**dev**](https://github.com/arendst/Sonoff-Tasmota/tree/dev) branch of Sonoff-Tasmota.
+ - Create a Pull Request against the [**dev**](https://github.com/arendst/Tasmota/tree/dev) branch of Tasmota.
 
 1. All pull requests must be done against the dev branch.
 2. Only relevant files should be touched (Also beware if your editor has auto-formatting feature enabled).
@@ -100,7 +102,7 @@ A CLA is a legal document in which you state _you are entitled to contribute the
 
 CLA is a safety because it also ensures that once you have provided a contribution, you cannot try to withdraw permission for its use at a later date. People can therefore use that software, confident that they will not be asked to stop using pieces of the code at a later date.
 
-A __license__ grants "outbound" rights to the user of project. 
+A __license__ grants "outbound" rights to the user of project.
 
 A __CLA__ enables a contributor to grant "inbound" rights to a project.
 

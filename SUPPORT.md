@@ -1,23 +1,25 @@
-# Sonoff-Tasmota Support
+<img src="/tools/logo/TASMOTA_FullLogo_Vector.svg" alt="Logo" align="right" height="76"/>
 
-If you're looking for support on **Sonoff-Tasmota** there are some options available:
+# Support
 
-### Documentation:
+If you're looking for support on **Tasmota** there are some options available:
 
-* [Wiki Pages](https://github.com/arendst/Sonoff-Tasmota/wiki): For information on how to Flash Tasmota, configure and use it.
-* [FAQ](https://github.com/arendst/Sonoff-Tasmota/wiki/FAQ): For information on common problems and solutions.
-* [Troubleshooting Information](https://github.com/arendst/Sonoff-Tasmota/wiki/Troubleshooting): For ways to debug and troubleshoot.
-* [Commands Information](https://github.com/arendst/Sonoff-Tasmota/wiki/Commands): For information on all the commands supported by Tasmota.
+## Documentation:
 
-### Support's Community:
+* [Wiki Pages](https://github.com/arendst/Tasmota/wiki): For information on how to Flash Tasmota, configure and use it.
+* [FAQ](https://github.com/arendst/Tasmota/wiki/FAQ): For information on common problems and solutions.
+* [Troubleshooting Information](https://github.com/arendst/Tasmota/wiki/Troubleshooting): For ways to debug and troubleshoot.
+* [Commands Information](https://github.com/arendst/Tasmota/wiki/Commands): For information on all the commands supported by Tasmota.
+
+## Support's Community:
 
 * [Tasmota Forum](https://groups.google.com/d/forum/sonoffusers): For usage and discussions.
 * [Tasmota Support Chat](https://discord.gg/Ks2Kzd4): For support, troubleshooting and general questions. You have better chances to get fast answers from members of the Tasmota Community.
-* [Search in Issues](https://github.com/arendst/Sonoff-Tasmota/issues): You might find an answer to your question by searching current or closed issues.
+* [Search in Issues](https://github.com/arendst/Tasmota/issues): You might find an answer to your question by searching current or closed issues.
 
-### Developers' Community:
+## Developers' Community:
 
-* [Bug Report](https://github.com/arendst/Sonoff-Tasmota/issues/new?template=Bug_report.md): For reporting Bugs of Tasmota Software.
-* [Feature Request](https://github.com/arendst/Sonoff-Tasmota/issues/new?template=Feature_request.md): For requesting features/functions to Tasmota Software.
-* [Troubleshooting](https://github.com/arendst/Sonoff-Tasmota/issues/new?template=Custom.md): As a last resort, you can open new *Troubleshooting* issue on GitHub if the solution could not be found using the other channels. Just remember: the more info you provide the more chances you'll have to get an accurate answer.
-* [Issue a question](https://github.com/arendst/Sonoff-Tasmota/issues/new/choose): As a last resort, you can open new *Question* issue on GitHub if the answer could not be found using the other channels. Just remember: the more info you provide the more chances you'll have to get an accurate answer.
+* [Bug Report](https://github.com/arendst/Tasmota/issues/new?template=Bug_report.md): For reporting Bugs of Tasmota Software.
+* [Feature Request](https://github.com/arendst/Tasmota/issues/new?template=Feature_request.md): For requesting features/functions to Tasmota Software.
+* [Troubleshooting](https://github.com/arendst/Tasmota/issues/new?template=Custom.md): As a last resort, you can open new *Troubleshooting* issue on GitHub if the solution could not be found using the other channels. Just remember: the more info you provide the more chances you'll have to get an accurate answer.
+* [Issue a question](https://github.com/arendst/Tasmota/issues/new/choose): As a last resort, you can open a new *Question* issue on GitHub if the answer could not be found using the other channels. Just remember: the more info you provide the more chances you'll have to get an accurate answer.
