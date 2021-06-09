@@ -1,7 +1,7 @@
 /*
   xdrv_15_pca9685.ino - Support for I2C PCA9685 12bit 16 pin hardware PWM driver on Tasmota
 
-  Copyright (C) 2019  Andre Thomas and Theo Arends
+  Copyright (C) 2021  Andre Thomas and Theo Arends
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -39,13 +39,12 @@
   #define USE_PCA9685_FREQ          50
 #endif
 
-uint8_t pca9685_detected = 0;
+bool pca9685_detected = false;
 uint16_t pca9685_freq = USE_PCA9685_FREQ;
 uint16_t pca9685_pin_pwm_value[16];
 
 void PCA9685_Detect(void)
 {
-  if (pca9685_detected) { return; }
   if (I2cActive(USE_PCA9685_ADDR)) { return; }
 
   uint8_t buffer;
@@ -53,7 +52,7 @@ void PCA9685_Detect(void)
     I2cWrite8(USE_PCA9685_ADDR, PCA9685_REG_MODE1, 0x20);
     if (I2cValidRead8(&buffer, USE_PCA9685_ADDR, PCA9685_REG_MODE1)) {
       if (0x20 == buffer) {
-        pca9685_detected = 1;
+        pca9685_detected = true;
         I2cSetActiveFound(USE_PCA9685_ADDR, "PCA9685");
         PCA9685_Reset(); // Reset the controller
       }
@@ -120,20 +119,20 @@ bool PCA9685_Command(void)
     serviced = false;
     return serviced;
   }
-  char sub_string[XdrvMailbox.data_len];
+  char argument[XdrvMailbox.data_len];
   for (uint32_t ca=0;ca<XdrvMailbox.data_len;ca++) {
     if ((' ' == XdrvMailbox.data[ca]) || ('=' == XdrvMailbox.data[ca])) { XdrvMailbox.data[ca] = ','; }
     if (',' == XdrvMailbox.data[ca]) { paramcount++; }
   }
   UpperCase(XdrvMailbox.data,XdrvMailbox.data);
 
-  if (!strcmp(subStr(sub_string, XdrvMailbox.data, ",", 1),"RESET"))  {  PCA9685_Reset(); return serviced; }
+  if (!strcmp(ArgV(argument, 1),"RESET"))  {  PCA9685_Reset(); return serviced; }
 
-  if (!strcmp(subStr(sub_string, XdrvMailbox.data, ",", 1),"STATUS"))  { PCA9685_OutputTelemetry(false); return serviced; }
+  if (!strcmp(ArgV(argument, 1),"STATUS"))  { PCA9685_OutputTelemetry(false); return serviced; }
 
-  if (!strcmp(subStr(sub_string, XdrvMailbox.data, ",", 1),"PWMF")) {
+  if (!strcmp(ArgV(argument, 1),"PWMF")) {
     if (paramcount > 1) {
-      uint16_t new_freq = atoi(subStr(sub_string, XdrvMailbox.data, ",", 2));
+      uint16_t new_freq = atoi(ArgV(argument, 2));
       if ((new_freq >= 24) && (new_freq <= 1526)) {
         PCA9685_SetPWMfreq(new_freq);
         Response_P(PSTR("{\"PCA9685\":{\"PWMF\":%i, \"Result\":\"OK\"}}"),new_freq);
@@ -144,23 +143,23 @@ bool PCA9685_Command(void)
       return serviced;
     }
   }
-  if (!strcmp(subStr(sub_string, XdrvMailbox.data, ",", 1),"PWM")) {
+  if (!strcmp(ArgV(argument, 1),"PWM")) {
     if (paramcount > 1) {
-      uint8_t pin = atoi(subStr(sub_string, XdrvMailbox.data, ",", 2));
+      uint8_t pin = atoi(ArgV(argument, 2));
       if (paramcount > 2) {
-        if (!strcmp(subStr(sub_string, XdrvMailbox.data, ",", 3), "ON")) {
+        if (!strcmp(ArgV(argument, 3), "ON")) {
           PCA9685_SetPWM(pin, 4096, false);
           Response_P(PSTR("{\"PCA9685\":{\"PIN\":%i,\"PWM\":%i}}"),pin,4096);
           serviced = true;
           return serviced;
         }
-        if (!strcmp(subStr(sub_string, XdrvMailbox.data, ",", 3), "OFF")) {
+        if (!strcmp(ArgV(argument, 3), "OFF")) {
           PCA9685_SetPWM(pin, 0, false);
           Response_P(PSTR("{\"PCA9685\":{\"PIN\":%i,\"PWM\":%i}}"),pin,0);
           serviced = true;
           return serviced;
         }
-        uint16_t pwm = atoi(subStr(sub_string, XdrvMailbox.data, ",", 3));
+        uint16_t pwm = atoi(ArgV(argument, 3));
         if ((pin >= 0 && pin <= 15) && (pwm >= 0 && pwm <= 4096)) {
           PCA9685_SetPWM(pin, pwm, false);
           Response_P(PSTR("{\"PCA9685\":{\"PIN\":%i,\"PWM\":%i}}"),pin,pwm);
@@ -173,15 +172,15 @@ bool PCA9685_Command(void)
   return serviced;
 }
 
-void PCA9685_OutputTelemetry(bool telemetry) {
-  if (0 == pca9685_detected) { return; }  // We do not do this if the PCA9685 has not been detected
+void PCA9685_OutputTelemetry(bool telemetry)
+{
   ResponseTime_P(PSTR(",\"PCA9685\":{\"PWM_FREQ\":%i,"),pca9685_freq);
   for (uint32_t pin=0;pin<16;pin++) {
     ResponseAppend_P(PSTR("\"PWM%i\":%i,"),pin,pca9685_pin_pwm_value[pin]);
   }
   ResponseAppend_P(PSTR("\"END\":1}}"));
   if (telemetry) {
-    MqttPublishPrefixTopic_P(TELE, PSTR(D_RSLT_SENSOR), Settings.flag.mqtt_sensor_retain);  // CMND_SENSORRETAIN
+    MqttPublishTeleSensor();
   }
 }
 
@@ -191,18 +190,22 @@ bool Xdrv15(uint8_t function)
 
   bool result = false;
 
-  switch (function) {
-    case FUNC_EVERY_SECOND:
-      PCA9685_Detect();
-      if (tele_period == 0) {
-        PCA9685_OutputTelemetry(true);
-      }
-      break;
-    case FUNC_COMMAND_DRIVER:
-      if (XDRV_15 == XdrvMailbox.index) {
-        result = PCA9685_Command();
-      }
-      break;
+  if (FUNC_INIT == function) {
+    PCA9685_Detect();
+  }
+  else if (pca9685_detected) {
+    switch (function) {
+      case FUNC_EVERY_SECOND:
+        if (TasmotaGlobal.tele_period == 0) {
+          PCA9685_OutputTelemetry(true);
+        }
+        break;
+      case FUNC_COMMAND_DRIVER:
+        if (XDRV_15 == XdrvMailbox.index) {
+          result = PCA9685_Command();
+        }
+        break;
+    }
   }
   return result;
 }

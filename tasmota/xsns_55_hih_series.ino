@@ -1,7 +1,7 @@
 /*
   xsns_55_hih_series.ino - Honeywell HIH series temperature and humidity sensor support for Tasmota
 
-  Copyright (C) 2019  Theo Arends
+  Copyright (C) 2021  Theo Arends
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -74,10 +74,9 @@ bool Hih6Read(void)
 
 void Hih6Detect(void)
 {
-  if (Hih6.type) { return; }
   if (I2cActive(HIH6_ADDR)) { return; }
 
-  if (uptime < 2) { delay(20); } // Skip entering power on comand mode
+  if (TasmotaGlobal.uptime < 2) { delay(20); } // Skip entering power on comand mode
   Hih6.type = Hih6Read();
   if (Hih6.type) {
     I2cSetActiveFound(HIH6_ADDR, Hih6.types);
@@ -86,17 +85,10 @@ void Hih6Detect(void)
 
 void Hih6EverySecond(void)
 {
-  if ((100 - XSNS_55) == (uptime %100)) {
-    // 1mS
-    Hih6Detect();
-  }
-  else if (uptime &1) {
+  if (TasmotaGlobal.uptime &1) {
     // HIH6130: 30mS
-    if (Hih6.type) {
-      if (!Hih6Read()) {
-        AddLogMissed(Hih6.types, Hih6.valid);
-//        if (!Hih6.valid) { Hih6.type = 0; }
-      }
+    if (!Hih6Read()) {
+      AddLogMissed(Hih6.types, Hih6.valid);
     }
   }
 }
@@ -104,30 +96,7 @@ void Hih6EverySecond(void)
 void Hih6Show(bool json)
 {
   if (Hih6.valid) {
-    char temperature[33];
-    dtostrfd(Hih6.temperature, Settings.flag2.temperature_resolution, temperature);
-    char humidity[33];
-    dtostrfd(Hih6.humidity, Settings.flag2.humidity_resolution, humidity);
-
-    if (json) {
-      ResponseAppend_P(JSON_SNS_TEMPHUM, Hih6.types, temperature, humidity);
-#ifdef USE_DOMOTICZ
-      if (0 == tele_period) {
-        DomoticzTempHumSensor(temperature, humidity);
-      }
-#endif  // USE_DOMOTICZ
-#ifdef USE_KNX
-      if (0 == tele_period) {
-        KnxSensor(KNX_TEMPERATURE, Hih6.temperature);
-        KnxSensor(KNX_HUMIDITY, Hih6.humidity);
-      }
-#endif  // USE_KNX
-#ifdef USE_WEBSERVER
-    } else {
-      WSContentSend_PD(HTTP_SNS_TEMP, Hih6.types, temperature, TempUnit());
-      WSContentSend_PD(HTTP_SNS_HUM, Hih6.types, humidity);
-#endif  // USE_WEBSERVER
-    }
+    TempHumDewShow(json, (0 == TasmotaGlobal.tele_period), Hih6.types, Hih6.temperature, Hih6.humidity);
   }
 }
 
@@ -141,21 +110,23 @@ bool Xsns55(uint8_t function)
 
   bool result = false;
 
-  switch (function) {
-    case FUNC_EVERY_SECOND:
-      Hih6EverySecond();
-      break;
-    case FUNC_JSON_APPEND:
-      Hih6Show(1);
-      break;
-#ifdef USE_WEBSERVER
-    case FUNC_WEB_SENSOR:
-      Hih6Show(0);
-      break;
-#endif  // USE_WEBSERVER
-    case FUNC_INIT:
-      Hih6Detect();
-      break;
+  if (FUNC_INIT == function) {
+    Hih6Detect();
+  }
+  else if (Hih6.type) {
+    switch (function) {
+      case FUNC_EVERY_SECOND:
+        Hih6EverySecond();
+        break;
+      case FUNC_JSON_APPEND:
+        Hih6Show(1);
+        break;
+  #ifdef USE_WEBSERVER
+      case FUNC_WEB_SENSOR:
+        Hih6Show(0);
+        break;
+  #endif  // USE_WEBSERVER
+    }
   }
   return result;
 }

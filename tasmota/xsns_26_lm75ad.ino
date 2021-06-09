@@ -1,7 +1,7 @@
 /*
   xsns_26_lm75ad.ino - Support for I2C LM75AD Temperature Sensor
 
-  Copyright (C) 2019  Andre Thomas and Theo Arends
+  Copyright (C) 2021  Andre Thomas and Theo Arends
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -45,21 +45,23 @@
 #define LM75_THYST_REGISTER     0x02
 #define LM75_TOS_REGISTER       0x03
 
-uint8_t lm75ad_type = 0;
+bool lm75ad_type = false;
 uint8_t lm75ad_address;
 uint8_t lm75ad_addresses[] = { LM75AD_ADDRESS1, LM75AD_ADDRESS2, LM75AD_ADDRESS3, LM75AD_ADDRESS4, LM75AD_ADDRESS5, LM75AD_ADDRESS6, LM75AD_ADDRESS7, LM75AD_ADDRESS8 };
 
 void LM75ADDetect(void)
 {
-  if (lm75ad_type) { return; }
-
   for (uint32_t i = 0; i < sizeof(lm75ad_addresses); i++) {
     lm75ad_address = lm75ad_addresses[i];
-    if (I2cActive(lm75ad_address)) { continue; }
+    if (I2cActive(lm75ad_address)) {
+      continue; }
+    if (!I2cSetDevice(lm75ad_address)) {
+      continue; // do not make the next step without a confirmed device on the bus
+    }
     uint16_t buffer;
     if (I2cValidRead16(&buffer, lm75ad_address, LM75_THYST_REGISTER)) {
       if (buffer == 0x4B00) {
-        lm75ad_type = 1;
+        lm75ad_type = true;
         I2cSetActiveFound(lm75ad_address, "LM75AD");
         break;
       }
@@ -67,7 +69,8 @@ void LM75ADDetect(void)
   }
 }
 
-float LM75ADGetTemp(void) {
+float LM75ADGetTemp(void)
+{
   int16_t sign = 1;
 
   uint16_t t = I2cRead16(lm75ad_address, LM75_TEMP_REGISTER);
@@ -81,21 +84,17 @@ float LM75ADGetTemp(void) {
 
 void LM75ADShow(bool json)
 {
-  if (lm75ad_type) {
-    float t = LM75ADGetTemp();
-    char temperature[33];
-    dtostrfd(t, Settings.flag2.temperature_resolution, temperature);
+  float t = LM75ADGetTemp();
 
-    if (json) {
-      ResponseAppend_P(PSTR(",\"LM75AD\":{\"" D_JSON_TEMPERATURE "\":%s}"), temperature);
+  if (json) {
+    ResponseAppend_P(JSON_SNS_F_TEMP, "LM75AD", Settings.flag2.temperature_resolution, &t);
 #ifdef USE_DOMOTICZ
-      if (0 == tele_period) DomoticzSensor(DZ_TEMP, temperature);
+    if (0 == TasmotaGlobal.tele_period) DomoticzFloatSensor(DZ_TEMP, t);
 #endif  // USE_DOMOTICZ
 #ifdef USE_WEBSERVER
-    } else {
-      WSContentSend_PD(HTTP_SNS_TEMP, "LM75AD", temperature, TempUnit());
+  } else {
+    WSContentSend_Temp("LM75AD", t);
 #endif  // USE_WEBSERVER
-    }
   }
 }
 
@@ -109,18 +108,20 @@ bool Xsns26(uint8_t function)
 
   bool result = false;
 
-  switch (function) {
-    case FUNC_EVERY_SECOND:
-      LM75ADDetect();
-      break;
-    case FUNC_JSON_APPEND:
-      LM75ADShow(1);
-      break;
-#ifdef USE_WEBSERVER
-    case FUNC_WEB_SENSOR:
-      LM75ADShow(0);
-      break;
-#endif  // USE_WEBSERVER
+  if (FUNC_INIT == function) {
+    LM75ADDetect();
+  }
+  else if (lm75ad_type) {
+    switch (function) {
+      case FUNC_JSON_APPEND:
+        LM75ADShow(1);
+        break;
+  #ifdef USE_WEBSERVER
+      case FUNC_WEB_SENSOR:
+        LM75ADShow(0);
+        break;
+  #endif  // USE_WEBSERVER
+    }
   }
   return result;
 }
