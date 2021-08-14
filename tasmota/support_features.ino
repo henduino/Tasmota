@@ -364,7 +364,7 @@ void ResponseAppendFeatures(void)
 #if defined(USE_ENERGY_SENSOR) && defined(USE_PZEM_DC)
     feature4 |= 0x00001000;  // xnrg_06_pzem_dc.ino
 #endif
-#if defined(USE_TX20_WIND_SENSOR) || defined(USE_TX23_WIND_SENSOR)
+#if defined(USE_TX20_WIND_SENSOR) || defined(USE_TX23_WIND_SENSOR) || defined(USE_WS2300_WIND_SENSOR)
     feature4 |= 0x00002000;  // xsns_35_tx20.ino
 #endif
 #if defined(USE_I2C) && defined(USE_MGC3130)
@@ -725,7 +725,7 @@ void ResponseAppendFeatures(void)
 
   static uint32_t feature8 = 0x00000000;
   if (!feature8) {           // Only fill this once
-#if defined(USE_I2C) && defined(USE_MPU6886)
+#if defined(USE_I2C) && defined(USE_MPU_ACCEL)
     feature8 |= 0x00000001;  // xsns_85_mpu6886.ino
 #endif
 #ifdef USE_TFMINIPLUS
@@ -737,17 +737,31 @@ void ResponseAppendFeatures(void)
 #ifdef USE_BERRY
     feature8 |= 0x00000008;  // xdrv_52_9_berry.ino
 #endif
-//    feature8 |= 0x00000010;
-#if defined(USE_ENERGY_SENSOR) && defined(USE_ENERGY_DUMMY)
-    feature8 |= 0x00000020;
+#if defined(USE_I2C) && defined(USE_BM8563)
+    feature8 |= 0x00000010;  // xdrv_56_BM8563_RTC.ino
 #endif
-//    feature8 |= 0x00000040;
-//    feature8 |= 0x00000080;
+#if defined(USE_ENERGY_SENSOR) && defined(USE_ENERGY_DUMMY)
+    feature8 |= 0x00000020;  // xnrg_20_dummy.ino
+#endif
+#if defined(USE_I2C) && defined(USE_AM2320)
+    feature8 |= 0x00000040;  // xsns_88_am2320.ino
+#endif
+#if defined(USE_I2C) && defined(USE_T67XX)
+    feature8 |= 0x00000080;  // xsns_89_t67xx.ino
+#endif
 
-//    feature8 |= 0x00000100;
-//    feature8 |= 0x00000200;
-//    feature8 |= 0x00000400;
-//    feature8 |= 0x00000800;
+#if defined(USE_SPI) && defined(USE_MCP2515)
+    feature8 |= 0x00000100;  // xsns_87_mcp2515.ino
+#endif
+#ifdef USE_TASMESH
+    feature8 |= 0x00000200;  // xdrv_57_9_tasmesh.ino
+#endif
+#ifdef USE_WIFI_RANGE_EXTENDER
+    feature8 |= 0x00000400;  // xdrv_58_range_extender.ino
+#endif
+#ifdef USE_INFLUXDB
+    feature8 |= 0x00000800;  // xsns_90_influxdb.ino
+#endif
 
 //    feature8 |= 0x00001000;
 //    feature8 |= 0x00002000;

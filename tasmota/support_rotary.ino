@@ -47,7 +47,9 @@
 #endif
 
 const uint8_t rotary_offset = 128;
+#ifdef ESP8266
 const int8_t rotary_state_pos[16] = { 0, 1, -1, 2, -1, 0, -2, 1, 1, -2, 0, -1, 2, -1, 1, 0 };
+#endif  // ESP8266
 
 struct ROTARY {
   uint8_t no_pullup_mask_a = 0;                // Rotary A pull-up bitmask flags
@@ -91,7 +93,7 @@ bool RotaryButtonPressed(uint32_t button_index) {
 
     bool powered_on = (TasmotaGlobal.power);
 #ifdef USE_LIGHT
-    if (!Settings.flag4.rotary_uses_rules) {   // SetOption98 - Use rules instead of light control
+    if (!Settings->flag4.rotary_uses_rules) {   // SetOption98 - Use rules instead of light control
       powered_on = LightPower();
     }
 #endif  // USE_LIGHT
@@ -111,6 +113,13 @@ void IRAM_ATTR RotaryIsrArgMiDesk(void *arg) {
   uint32_t state = encoder->state & 3;
   if (digitalRead(encoder->pina)) { state |= 4; }
   if (digitalRead(encoder->pinb)) { state |= 8; }
+
+#ifdef ESP32
+//  This fails intermittendly with panic (Cache disabled but cached memory region accessed) if not in DRAM
+//  https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/memory-types.html
+  const static DRAM_ATTR int8_t rotary_state_pos[16] = { 0, 1, -1, 2, -1, 0, -2, 1, 1, -2, 0, -1, 2, -1, 1, 0 };
+#endif  // ESP32
+
   encoder->position += rotary_state_pos[state];
   encoder->state = (state >> 2);
 }
@@ -131,10 +140,10 @@ void IRAM_ATTR RotaryIsrArg(void *arg) {
 }
 
 void RotaryInitMaxSteps(void) {
-  if (0 == Settings.param[P_ROTARY_MAX_STEP]) {
-    Settings.param[P_ROTARY_MAX_STEP] = ROTARY_MAX_STEPS;  // SetOption43
+  if (0 == Settings->param[P_ROTARY_MAX_STEP]) {
+    Settings->param[P_ROTARY_MAX_STEP] = ROTARY_MAX_STEPS;  // SetOption43
   }
-  uint8_t max_steps = Settings.param[P_ROTARY_MAX_STEP];
+  uint8_t max_steps = Settings->param[P_ROTARY_MAX_STEP];
   if (!Rotary.model) { max_steps *= 3; }
   Rotary.dimmer_increment = 100 / max_steps;  // Dimmer 1..100 = 100
   Rotary.ct_increment =     350 / max_steps;  // Ct 153..500 = 347
@@ -144,12 +153,14 @@ void RotaryInitMaxSteps(void) {
 void RotaryInit(void) {
   Rotary.present = false;
 
-  Rotary.model = 1;
+  Rotary.model = !TasmotaGlobal.gpio_optiona.rotary_mi_desk;  // Option_A5
 #ifdef ESP8266
   if (MI_DESK_LAMP == TasmotaGlobal.module_type) {
     Rotary.model = 0;
   }
 #endif  // ESP8266
+
+  AddLog(LOG_LEVEL_DEBUG, PSTR("ROT: Mode %d"), Rotary.model);
 
   RotaryInitMaxSteps();
 
@@ -186,7 +197,7 @@ void RotaryHandler(void) {
       Encoder[index].timeout--;
       if (!Encoder[index].timeout) {
 #ifdef USE_LIGHT
-        if (!Settings.flag4.rotary_uses_rules) {  // SetOption98 - Use rules instead of light control
+        if (!Settings->flag4.rotary_uses_rules) {  // SetOption98 - Use rules instead of light control
           ResponseLightState(0);
           MqttPublishPrefixTopicRulesProcess_P(RESULT_OR_STAT, PSTR(D_CMND_STATE));
         }
@@ -203,7 +214,7 @@ void RotaryHandler(void) {
     Encoder[index].position = rotary_offset;
     interrupts();
 
-    if (Settings.save_data && (TasmotaGlobal.save_data_counter < 2)) {
+    if (Settings->save_data && (TasmotaGlobal.save_data_counter < 2)) {
       TasmotaGlobal.save_data_counter = 3;                   // Postpone flash writes while rotary is turned
     }
 
@@ -212,7 +223,7 @@ void RotaryHandler(void) {
 //    AddLog(LOG_LEVEL_DEBUG, PSTR("ROT: Button1 %d, Position %d"), button_pressed, rotary_position);
 
 #ifdef USE_LIGHT
-    if (!Settings.flag4.rotary_uses_rules) {   // SetOption98 - Use rules instead of light control
+    if (!Settings->flag4.rotary_uses_rules) {   // SetOption98 - Use rules instead of light control
       bool second_rotary = (Encoder[1].pinb >= 0);
       if (0 == index) {                        // Rotary1
         if (button_pressed) {
@@ -225,7 +236,7 @@ void RotaryHandler(void) {
           }
         } else {                               // Dimmer RGBCW or RGB only if second rotary
           uint32_t dimmer_index = second_rotary ? 1 : 0;
-          if (!Settings.flag4.rotary_poweron_dimlow || TasmotaGlobal.power) {  // SetOption113 - On rotary dial after power off set dimmer low
+          if (!Settings->flag4.rotary_poweron_dimlow || TasmotaGlobal.power) {  // SetOption113 - On rotary dial after power off set dimmer low
             LightDimmerOffset(dimmer_index, rotary_position * Rotary.dimmer_increment);
           } else {
             if (rotary_position > 0) {         // Only power on if rotary increase
@@ -246,8 +257,8 @@ void RotaryHandler(void) {
       if (Encoder[index].abs_position[button_pressed] < 0) {
         Encoder[index].abs_position[button_pressed] = 0;
       }
-      if (Encoder[index].abs_position[button_pressed] > Settings.param[P_ROTARY_MAX_STEP]) {  // SetOption43 - Rotary steps
-        Encoder[index].abs_position[button_pressed] = Settings.param[P_ROTARY_MAX_STEP];      // SetOption43 - Rotary steps
+      if (Encoder[index].abs_position[button_pressed] > Settings->param[P_ROTARY_MAX_STEP]) {  // SetOption43 - Rotary steps
+        Encoder[index].abs_position[button_pressed] = Settings->param[P_ROTARY_MAX_STEP];      // SetOption43 - Rotary steps
       }
       Response_P(PSTR("{\"Rotary%d\":{\"Pos1\":%d,\"Pos2\":%d}}"), index +1, Encoder[index].abs_position[0], Encoder[index].abs_position[1]);
       XdrvRulesProcess(0);

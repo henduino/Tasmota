@@ -72,18 +72,44 @@ extern "C" {
   int32_t l_publish(struct bvm *vm);
   int32_t l_publish(struct bvm *vm) {
     int32_t top = be_top(vm); // Get the number of arguments
-    if (top >= 3 && be_isstring(vm, 2) && be_isstring(vm, 3)) {  // 2 mandatory string arguments
+    if (top >= 3 && be_isstring(vm, 2) && (be_isstring(vm, 3) || be_isinstance(vm, 3))) {  // 2 mandatory string arguments
       if (top == 3 || (top == 4 && be_isbool(vm, 4))) {           // 3rd optional argument must be bool
         const char * topic = be_tostring(vm, 2);
-        const char * payload = be_tostring(vm, 3);
+        const char * payload = nullptr;
+        size_t payload_len = 0;
+        if (be_isstring(vm, 3)) {
+          payload = be_tostring(vm, 3);
+          payload_len = strlen(payload);
+        } else {
+          be_getglobal(vm, "bytes"); /* get the bytes class */ /* TODO eventually replace with be_getbuiltin */
+          if (be_isderived(vm, 3)) {
+            payload = (const char *) be_tobytes(vm, 3, &payload_len);
+          }
+        }
         bool retain = false;
         if (top == 4) {
           retain = be_tobool(vm, 4);
         }
-        Response_P(payload);
-        MqttPublish(topic, retain);
-        be_return(vm); // Return
+        if (!payload) { be_raise(vm, "value_error", "Empty payload"); }
+        MqttPublishPayload(topic, payload, payload_len, retain);
+        be_return_nil(vm); // Return
       }
+    }
+    be_raise(vm, kTypeError, nullptr);
+  }
+  
+  // Berry: `tasmota.publish_result(payload:string, subtopic:string) -> nil``
+  //
+  int32_t l_publish_result(struct bvm *vm);
+  int32_t l_publish_result(struct bvm *vm) {
+    int32_t top = be_top(vm); // Get the number of arguments
+    if (top >= 3 && be_isstring(vm, 2) && be_isstring(vm, 3)) {  // 2 mandatory string arguments
+      const char * payload = be_tostring(vm, 2);
+      const char * subtopic = be_tostring(vm, 3);
+      Response_P(PSTR("%s"), payload);
+      be_pop(vm, top);
+      MqttPublishPrefixTopicRulesProcess_P(RESULT_OR_TELE, subtopic);
+      be_return_nil(vm); // Return
     }
     be_raise(vm, kTypeError, nullptr);
   }
@@ -162,6 +188,76 @@ extern "C" {
       map_insert_int(vm, "local", Rtc.local_time);
       map_insert_int(vm, "restart", Rtc.restart_time);
       map_insert_int(vm, "timezone", Rtc.time_timezone);
+      be_pop(vm, 1);
+      be_return(vm);
+    }
+    be_raise(vm, kTypeError, nullptr);
+  }
+
+  // Berry: tasmota.memory() -> map
+  //
+  int32_t l_memory(struct bvm *vm);
+  int32_t l_memory(struct bvm *vm) {
+    int32_t top = be_top(vm); // Get the number of arguments
+    if (top == 1) {  // no argument (instance only)
+      be_newobject(vm, "map");
+      map_insert_int(vm, "flash", ESP.getFlashChipSize() / 1024);
+      map_insert_int(vm, "program", ESP_getSketchSize() / 1024);
+      map_insert_int(vm, "program_free", ESP.getFreeSketchSpace() / 1024);
+      map_insert_int(vm, "heap_free", ESP_getFreeHeap() / 1024);
+      int32_t freeMaxMem = 100 - (int32_t)(ESP_getMaxAllocHeap() * 100 / ESP_getFreeHeap());
+      map_insert_int(vm, "frag", freeMaxMem);
+      if (UsePSRAM()) {
+        map_insert_int(vm, "psram", ESP.getPsramSize() / 1024);
+        map_insert_int(vm, "psram_free", ESP.getFreePsram() / 1024);
+      }
+      be_pop(vm, 1);
+      be_return(vm);
+    }
+    be_raise(vm, kTypeError, nullptr);
+  }
+
+  // Berry: tasmota.wifi() -> map
+  //
+  int32_t l_wifi(struct bvm *vm);
+  int32_t l_wifi(struct bvm *vm) {
+    int32_t top = be_top(vm); // Get the number of arguments
+    if (top == 1) {  // no argument (instance only)
+      be_newobject(vm, "map");
+      if (Settings->flag4.network_wifi) {
+        int32_t rssi = WiFi.RSSI();
+        map_insert_int(vm, "rssi", rssi);
+        map_insert_int(vm, "quality", WifiGetRssiAsQuality(rssi));
+#if LWIP_IPV6
+        String ipv6_addr = WifiGetIPv6();
+        if (ipv6_addr != "") {
+          map_insert_str(vm, "ip6", ipv6_addr.c_str());
+        }
+#endif
+        if (static_cast<uint32_t>(WiFi.localIP()) != 0) {
+          map_insert_str(vm, "mac", WiFi.macAddress().c_str());
+          map_insert_str(vm, "ip", WiFi.localIP().toString().c_str());
+        }
+      }
+      be_pop(vm, 1);
+      be_return(vm);
+    }
+    be_raise(vm, kTypeError, nullptr);
+  }
+
+  // Berry: tasmota.eth() -> map
+  //
+  int32_t l_eth(struct bvm *vm);
+  int32_t l_eth(struct bvm *vm) {
+    int32_t top = be_top(vm); // Get the number of arguments
+    if (top == 1) {  // no argument (instance only)
+      be_newobject(vm, "map");
+#ifdef USE_ETHERNET
+      if (static_cast<uint32_t>(EthernetLocalIP()) != 0) {
+        map_insert_str(vm, "mac", EthernetMacAddress().c_str());
+        map_insert_str(vm, "ip", EthernetLocalIP().toString().c_str());
+      }
+#endif
       be_pop(vm, 1);
       be_return(vm);
     }
@@ -459,24 +555,6 @@ void berry_log_P(const char * berry_buf, ...) {
   va_end(arg);
   if (len+3 > LOGSZ) { strcat(log_data, "..."); }  // Actual data is more
   berry_log(log_data);
-}
-
-
-/*********************************************************************************************\
- * Helper function for `Driver` class
- * 
- * get_tasmota() -> tasmota instance from globals
- *   allows to use solidified methods refering to the global object `tasmota`
- * 
-\*********************************************************************************************/
-extern "C" {
-
-  int32_t d_getTasmotaGlob(struct bvm *vm);
-  int32_t d_getTasmotaGlob(struct bvm *vm) {
-    be_getglobal(berry.vm, PSTR("tasmota"));
-    be_return(vm); // Return
-  }
-
 }
 
 #endif  // USE_BERRY

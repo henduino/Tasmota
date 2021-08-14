@@ -456,7 +456,7 @@ const uint8_t meter[]=
 //0x77,0x07,0x01,0x00,0x01,0x08,0x01,0xff
 "1,77070101010801ff@1000," D_TPWRIN1 ",kWh," DJ_TPWRIN1 ",2|" // Verbrauch T1
 //0x77,0x07,0x01,0x00,0x01,0x07,0x00,0xff
-"1,77070100010700ff@1," D_TPWRCURR ",W," DJ_TPWRCURR ",0|" // Strom Gesamt 
+"1,77070100010700ff@1," D_TPWRCURR ",W," DJ_TPWRCURR ",0|" // Strom Gesamt
 //0x77,0x07,0x01,0x00,0x01,0x07,0x00,0xff
 "1,77070100150700ff@1," D_TPWRCURR1 ",W," DJ_TPWRCURR1 ",0|" // Strom L1
 //0x77,0x07,0x01,0x00,0x01,0x07,0x00,0xff
@@ -1438,6 +1438,13 @@ void SML_Decode(uint8_t index) {
       continue;
     }
 
+    // =d must handle dindex
+    if (*mp == '=' && *(mp + 1) == 'd') {
+      if (index != mindex) {
+        dindex++;
+      }
+    }
+
     if (index!=mindex) goto nextsect;
 
     // start of serial source buffer
@@ -2265,7 +2272,7 @@ void SML_Init(void) {
 
   }
 
-  if (bitRead(Settings.rule_enabled, 0)) {
+  if (bitRead(Settings->rule_enabled, 0)) {
 
   uint8_t meter_script=Run_Scripter(">M",-2,0);
   if (meter_script==99) {
@@ -2490,7 +2497,7 @@ init10:
   uint8_t cindex=0;
   // preloud counters
   for (byte i = 0; i < MAX_COUNTERS; i++) {
-      RtcSettings.pulse_counter[i]=Settings.pulse_counter[i];
+      RtcSettings.pulse_counter[i]=Settings->pulse_counter[i];
       sml_counters[i].sml_cnt_last_ts=millis();
   }
   uint32_t uart_index=2;
@@ -2983,7 +2990,7 @@ void InjektCounterValue(uint8_t meter,uint32_t counter) {
 
 void SML_CounterSaveState(void) {
   for (byte i = 0; i < MAX_COUNTERS; i++) {
-      Settings.pulse_counter[i] = RtcSettings.pulse_counter[i];
+      Settings->pulse_counter[i] = RtcSettings.pulse_counter[i];
   }
 }
 
@@ -3011,7 +3018,7 @@ bool Xsns53(byte function) {
     //    break;
 #ifdef USE_SCRIPT
       case FUNC_EVERY_100_MSECOND:
-        if (bitRead(Settings.rule_enabled, 0)) {
+        if (bitRead(Settings->rule_enabled, 0)) {
           SML_Check_Send();
         }
         break;

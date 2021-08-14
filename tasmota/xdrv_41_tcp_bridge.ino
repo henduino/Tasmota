@@ -35,6 +35,7 @@ WiFiServer   *server_tcp = nullptr;
 WiFiClient   client_tcp[TCP_BRIDGE_CONNECTIONS];
 uint8_t      client_next = 0;
 uint8_t     *tcp_buf = nullptr;     // data transfer buffer
+IPAddress    ip_filter;
 
 #include <TasmotaSerial.h>
 TasmotaSerial *TCPSerial = nullptr;
@@ -60,12 +61,25 @@ void TCPLoop(void)
 
   // check for a new client connection
   if ((server_tcp) && (server_tcp->hasClient())) {
+    WiFiClient new_client = server_tcp->available();
+
+    AddLog(LOG_LEVEL_INFO, PSTR(D_LOG_TCP "Got connection from %s"), new_client.remoteIP().toString().c_str());
+    // Check for IP filtering if it's enabled.
+    if (ip_filter) {
+      if (ip_filter != new_client.remoteIP()) {
+        AddLog(LOG_LEVEL_INFO, PSTR(D_LOG_TCP "Rejected due to filtering"));
+        new_client.stop();
+      } else {
+        AddLog(LOG_LEVEL_INFO, PSTR(D_LOG_TCP "Allowed through filter"));
+      }
+    }
+
     // find an empty slot
     uint32_t i;
     for (i=0; i<nitems(client_tcp); i++) {
       WiFiClient &client = client_tcp[i];
       if (!client) {
-        client = server_tcp->available();
+        client = new_client;
         break;
       }
     }
@@ -73,7 +87,7 @@ void TCPLoop(void)
       i = client_next++ % nitems(client_tcp);
       WiFiClient &client = client_tcp[i];
       client.stop();
-      client = server_tcp->available();
+      client = new_client;
     }
   }
 
@@ -125,9 +139,9 @@ void TCPInit(void) {
     tcp_buf = (uint8_t*) malloc(TCP_BRIDGE_BUF_SIZE);
     if (!tcp_buf) { AddLog(LOG_LEVEL_ERROR, PSTR(D_LOG_TCP "could not allocate buffer")); return; }
 
-    if (!Settings.tcp_baudrate)  { Settings.tcp_baudrate = 115200 / 1200; }
+    if (!Settings->tcp_baudrate)  { Settings->tcp_baudrate = 115200 / 1200; }
     TCPSerial = new TasmotaSerial(Pin(GPIO_TCP_RX), Pin(GPIO_TCP_TX), TasmotaGlobal.seriallog_level ? 1 : 2, 0, TCP_BRIDGE_BUF_SIZE);   // set a receive buffer of 256 bytes
-    TCPSerial->begin(Settings.tcp_baudrate * 1200);
+    TCPSerial->begin(Settings->tcp_baudrate * 1200);
     if (TCPSerial->hardwareSerial()) {
       ClaimSerial();
 		}
@@ -139,12 +153,21 @@ void TCPInit(void) {
 \*********************************************************************************************/
 
 //
-// Command `ZbConfig`
+// Command `TCPStart`
+// Params: port,<IPv4 allow>
 //
 void CmndTCPStart(void) {
 
   if (!TCPSerial) { return; }
+
   int32_t tcp_port = XdrvMailbox.payload;
+  if (ArgC() == 2) {
+    char sub_string[XdrvMailbox.data_len];
+    ip_filter.fromString(ArgV(sub_string, 2));
+  } else {
+    // Disable whitelist if previously set
+    ip_filter = (uint32_t)0;
+  }
 
   if (server_tcp) {
     AddLog(LOG_LEVEL_INFO, PSTR(D_LOG_TCP "Stopping TCP server"));
@@ -159,6 +182,9 @@ void CmndTCPStart(void) {
   }
   if (tcp_port > 0) {
     AddLog(LOG_LEVEL_INFO, PSTR(D_LOG_TCP "Starting TCP server on port %d"), tcp_port);
+    if (ip_filter) {
+      AddLog(LOG_LEVEL_INFO, PSTR(D_LOG_TCP "Filtering %s"), ip_filter.toString().c_str());
+    }
     server_tcp = new WiFiServer(tcp_port);
     server_tcp->begin(); // start TCP server
     server_tcp->setNoDelay(true);
@@ -170,10 +196,10 @@ void CmndTCPStart(void) {
 void CmndTCPBaudrate(void) {
   if ((XdrvMailbox.payload >= 1200) && (XdrvMailbox.payload <= 115200)) {
     XdrvMailbox.payload /= 1200;  // Make it a valid baudrate
-    Settings.tcp_baudrate = XdrvMailbox.payload;
-    TCPSerial->begin(Settings.tcp_baudrate * 1200);  // Reinitialize serial port with new baud rate
+    Settings->tcp_baudrate = XdrvMailbox.payload;
+    TCPSerial->begin(Settings->tcp_baudrate * 1200);  // Reinitialize serial port with new baud rate
   }
-  ResponseCmndNumber(Settings.tcp_baudrate * 1200);
+  ResponseCmndNumber(Settings->tcp_baudrate * 1200);
 }
 
 /*********************************************************************************************\
